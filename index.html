@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vokabeln">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Vokabeltrainer Englisch</title>
+<style>
+  :root {
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --green: #16a34a;
+    --green-light: #dcfce7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --orange: #ea580c;
+    --border: #e2e8f0;
+    --shadow: 0 1px 3px rgba(15, 23, 42, .08), 0 4px 12px rgba(15, 23, 42, .05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 14px 24px; display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 10; flex-wrap: wrap;
+  }
+  header h1 { font-size: 1.15rem; }
+  header h1 span { color: var(--accent); }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  nav button {
+    border: none; background: transparent; padding: 8px 14px; border-radius: 8px;
+    font-size: .92rem; cursor: pointer; color: var(--muted); font-weight: 600;
+  }
+  nav button.active { background: var(--accent-light); color: var(--accent); }
+  nav button:hover:not(.active) { background: var(--bg); }
+  main { max-width: 1050px; margin: 0 auto; padding: 24px 16px 60px; }
+  .view { display: none; }
+  .view.active { display: block; }
+  h2 { font-size: 1.05rem; margin-bottom: 14px; }
+  h3 { font-size: .95rem; margin-bottom: 10px; }
+
+  /* KPI-Karten */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi {
+    background: var(--card); border-radius: 12px; padding: 16px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .kpi .val { font-size: 1.7rem; font-weight: 700; }
+  .kpi .lbl { font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  .kpi.blue .val { color: var(--accent); }
+  .kpi.green .val { color: var(--green); }
+  .kpi.orange .val { color: var(--orange); }
+  .kpi.red .val { color: var(--red); }
+
+  .panel { background: var(--card); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .vacation-badge {
+    display: inline-block; background: #fef3c7; color: #b45309; border-radius: 8px;
+    padding: 4px 12px; font-size: .82rem; font-weight: 700; margin-bottom: 12px;
+  }
+
+  /* Balkendiagramme (reines CSS, keine externen Bibliotheken -> offline-fähig) */
+  .barchart { display: flex; align-items: flex-end; gap: 4px; height: 130px; margin-top: 8px; }
+  .barchart .bcol { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 100%; justify-content: flex-end; }
+  .barchart .bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--accent); min-height: 2px; position: relative; }
+  .barchart .bar.correct { background: var(--green); }
+  .barchart .blbl { font-size: .6rem; color: var(--muted); white-space: nowrap; }
+  .barchart .bval { font-size: .65rem; color: var(--muted); }
+
+  .hbar-row { display: grid; grid-template-columns: 130px 1fr 45px; align-items: center; gap: 8px; margin-bottom: 8px; font-size: .85rem; }
+  .hbar-row.wide-num { grid-template-columns: 130px 1fr 82px; }
+  .hbar-track { background: var(--bg); border-radius: 6px; height: 18px; overflow: hidden; position: relative; }
+  .hbar-fill { height: 100%; border-radius: 6px; background: var(--accent); transition: width .3s; }
+  .hbar-total { position: absolute; inset: 0; border-radius: 6px; background: var(--border); }
+  .hbar-fill.on-top { position: absolute; left: 0; top: 0; }
+  .hbar-row .num { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .legend { display: flex; gap: 14px; font-size: .75rem; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+  .legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+
+  /* Lernkarte */
+  .learn-setup { display: flex; flex-direction: column; gap: 14px; }
+  .option-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .chip {
+    border: 1.5px solid var(--border); background: var(--card); border-radius: 20px;
+    padding: 7px 16px; cursor: pointer; font-size: .88rem; font-weight: 600; color: var(--muted);
+  }
+  .chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .flashcard {
+    background: var(--card); border-radius: 16px; box-shadow: var(--shadow);
+    padding: 40px 24px; text-align: center; margin: 0 auto 16px; max-width: 560px;
+    min-height: 240px; display: flex; flex-direction: column; justify-content: center; gap: 14px;
+  }
+  .flashcard .direction { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+  .flashcard .word { font-size: 2rem; font-weight: 700; word-break: break-word; }
+  .flashcard .answer { font-size: 1.4rem; color: var(--accent); font-weight: 600; word-break: break-word; }
+  .flashcard .meta { font-size: .78rem; color: var(--muted); }
+  .btn {
+    border: none; border-radius: 10px; padding: 12px 22px; font-size: .95rem; font-weight: 700;
+    cursor: pointer; background: var(--accent); color: #fff;
+  }
+  .btn.secondary { background: var(--bg); color: var(--text); }
+  .btn.green { background: var(--green); }
+  .btn.red { background: var(--red); }
+  .btn.small { padding: 7px 14px; font-size: .82rem; border-radius: 8px; }
+  .btn:hover { filter: brightness(1.07); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .session-progress { text-align: center; color: var(--muted); font-size: .85rem; margin-bottom: 10px; }
+  .progress-track { background: var(--border); height: 6px; border-radius: 3px; max-width: 560px; margin: 0 auto 18px; overflow: hidden; }
+  .progress-fill { background: var(--accent); height: 100%; border-radius: 3px; transition: width .25s; }
+
+  /* Tabelle */
+  table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; }
+  tr:hover td { background: var(--bg); }
+  .tag { display: inline-block; background: var(--accent-light); color: var(--accent); border-radius: 6px; padding: 2px 8px; font-size: .72rem; font-weight: 700; }
+  .tag.lvl { background: var(--green-light); color: var(--green); }
+  .boxdot { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; font-size: .72rem; font-weight: 700; color: #fff; }
+  .rowbtn { border: none; background: transparent; cursor: pointer; font-size: .95rem; padding: 3px 6px; border-radius: 6px; }
+  .rowbtn:hover { background: var(--border); }
+
+  input[type=text], input[type=date], input[type=email], input[type=password], select, textarea {
+    border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 16px; /* 16px verhindert Auto-Zoom auf iOS */
+    font-family: inherit; background: var(--card); color: var(--text); width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-light); border-color: var(--accent); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 150px 100px auto; gap: 10px; align-items: end; }
+  @media (max-width: 820px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+  label { font-size: .75rem; color: var(--muted); font-weight: 700; display: block; margin-bottom: 4px; }
+  label.toggle { display: flex; align-items: center; gap: 8px; font-size: .88rem; color: var(--text); font-weight: 600; margin: 0; cursor: pointer; }
+  label.toggle input { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .toolbar input[type=text] { max-width: 260px; }
+  .hint { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+  .empty { text-align: center; color: var(--muted); padding: 30px; font-size: .9rem; }
+  .vac-list { list-style: none; margin-top: 12px; }
+  .vac-list li {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    background: var(--bg); border-radius: 8px; margin-bottom: 6px; font-size: .88rem;
+  }
+  .vac-list li.active-vac { background: #fef3c7; }
+  .vac-list .spacer { flex: 1; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--text); color: #fff; padding: 12px 22px; border-radius: 10px;
+    font-size: .88rem; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 50;
+  }
+  .toast.show { opacity: 1; }
+  .footer-note { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 30px; }
+
+  /* ---- PWA / Handy ---- */
+  html { -webkit-text-size-adjust: 100%; }
+  body { -webkit-tap-highlight-color: transparent; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
+  header { padding-top: calc(14px + env(safe-area-inset-top)); }
+  button, .chip, .btn { touch-action: manipulation; }
+  .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .sync-ok { color: var(--green); font-weight: 700; }
+  .sync-err { color: var(--red); font-weight: 700; }
+  @media (max-width: 560px) {
+    header { padding-left: 12px; padding-right: 12px; gap: 6px; }
+    header h1 { font-size: 1rem; width: 100%; }
+    nav { width: 100%; }
+    nav button { flex: 1; padding: 9px 4px; font-size: .85rem; }
+    main { padding: 14px 10px 50px; }
+    .flashcard { padding: 28px 16px; min-height: 200px; }
+    .flashcard .word { font-size: 1.6rem; }
+    .flashcard .answer { font-size: 1.2rem; }
+    .btn { padding: 14px 20px; }
+    #grade-row .btn { flex: 1; }
+    .hbar-row { grid-template-columns: 95px 1fr 40px; }
+    .hbar-row.wide-num { grid-template-columns: 95px 1fr 70px; }
+    .sync-grid { grid-template-columns: 1fr; }
+    .toolbar input[type=text] { max-width: none; flex: 1 1 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📘 Vokabeltrainer <span>Englisch</span></h1>
+  <nav>
+    <button data-view="dashboard" class="active" onclick="showView('dashboard')">Dashboard</button>
+    <button data-view="learn" onclick="showView('learn')">Lernen</button>
+    <button data-view="vocab" onclick="showView('vocab')">Vokabeln</button>
+    <button data-view="data" onclick="showView('data')">Daten</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="view-dashboard" class="view active">
+    <div id="vacation-badge-dash"></div>
+    <div class="kpi-grid">
+      <div class="kpi blue"><div class="val" id="kpi-total">0</div><div class="lbl">Vokabeln gesamt</div></div>
+      <div class="kpi blue"><div class="val" id="kpi-started">0</div><div class="lbl">Davon gelernt</div></div>
+      <div class="kpi orange"><div class="val" id="kpi-due">0</div><div class="lbl">Heute fällig</div></div>
+      <div class="kpi red"><div class="val" id="kpi-wrong-today">0</div><div class="lbl">Heute nicht gewusst</div></div>
+      <div class="kpi green"><div class="val" id="kpi-mastered">0</div><div class="lbl">Gemeistert (Box 5)</div></div>
+      <div class="kpi blue"><div class="val" id="kpi-streak">0</div><div class="lbl">Tage-Streak 🔥</div></div>
+      <div class="kpi green"><div class="val" id="kpi-rate">–</div><div class="lbl">Erfolgsquote gesamt</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Aktivität – letzte 14 Tage</h3>
+      <div class="barchart" id="chart-activity"></div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--accent)"></span>Abfragen</span>
+        <span><span class="dot" style="background:var(--green)"></span>davon richtig</span>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Lernstufen (Leitner-Boxen)</h3>
+        <div id="chart-boxes"></div>
+        <p class="hint" style="margin-top:8px">Box 1 = täglich · Box 2 = alle 2 Tage · Box 3 = alle 5 Tage · Box 4 = alle 10 Tage · Box 5 = alle 30 Tage (bleibt dort, solange gewusst) · bei „Nicht gewusst“ zurück in Box 1 · Fälligkeiten landen nie auf Sa/So, NRW-Feiertagen oder im Urlaub.</p>
+      </div>
+      <div class="panel">
+        <h3>Wortschatz nach Kategorie</h3>
+        <div id="chart-cats"></div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--accent)"></span>gelernt</span>
+          <span><span class="dot" style="background:var(--border)"></span>gesamt vorhanden</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Fällige Wiederholungen – nächste 7 Tage</h3>
+        <div id="chart-upcoming"></div>
+        <p class="hint" style="margin-top:8px">📅 = Wochenende · 🎉 = Feiertag (NRW) · 🏖 = Urlaub</p>
+      </div>
+      <div class="panel">
+        <h3>Wortschatz nach Niveau</h3>
+        <div id="chart-levels"></div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--green)"></span>gelernt</span>
+          <span><span class="dot" style="background:var(--border)"></span>gesamt vorhanden</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LERNEN ============ -->
+  <section id="view-learn" class="view">
+    <!-- Start-Ansicht -->
+    <div id="learn-start" class="learn-setup">
+      <div id="vacation-badge-learn"></div>
+      <div class="panel">
+        <h3>Abfragerichtung</h3>
+        <div class="option-row" id="dir-options">
+          <button class="chip" data-dir="en-de" onclick="setDirection('en-de')">EN → DE</button>
+          <button class="chip" data-dir="de-en" onclick="setDirection('de-en')">DE → EN</button>
+          <button class="chip" data-dir="mix" onclick="setDirection('mix')">Gemischt</button>
+        </div>
+        <div class="option-row" style="margin-top:12px">
+          <label class="toggle"><input type="checkbox" id="mix-adv" onchange="setMixAdvanced(this.checked)"> Ab Box <select id="mix-box" style="width:auto; padding:3px 6px" onchange="setMixBox(this.value)"><option>2</option><option>3</option><option selected>4</option><option>5</option></select> gemischt abfragen (EN ↔ DE zufällig)</label>
+        </div>
+        <p class="hint" id="mix-hint" style="margin-top:8px"></p>
+      </div>
+      <div class="panel">
+        <h3>Kategorie-Filter</h3>
+        <div class="option-row"><select id="learn-cat" style="max-width:280px" onchange="backToLearnStart()"><option value="">Alle Kategorien</option></select></div>
+      </div>
+      <div class="panel" style="text-align:center">
+        <p style="margin-bottom:14px"><strong id="due-info">0 Karten fällig</strong></p>
+        <div class="btn-row">
+          <button class="btn" onclick="startSession('due')">▶ Fällige Karten lernen</button>
+          <button class="btn red" id="btn-wrong" onclick="startSession('wrong')">❌ Heutige Fehler üben (0)</button>
+          <button class="btn secondary" onclick="startSession('free')">Freies Üben (alle Karten)</button>
+        </div>
+        <p class="hint" style="margin-top:12px">Ablauf: erst Wiederholungen (heutige Fehler zuerst), dann neue Karten. Falsche Karten kommen am Rundenende erneut, bis alle sitzen. „Heutige Fehler üben" und Freies Üben verändern die Leitner-Boxen nicht.</p>
+      </div>
+    </div>
+
+    <!-- Karten-Ansicht -->
+    <div id="learn-session" style="display:none">
+      <div class="session-progress" id="session-progress"></div>
+      <div class="progress-track"><div class="progress-fill" id="session-bar" style="width:0%"></div></div>
+      <div class="flashcard">
+        <div class="direction" id="card-direction"></div>
+        <div class="word" id="card-front"></div>
+        <div class="answer" id="card-back" style="display:none"></div>
+        <div class="meta" id="card-meta"></div>
+      </div>
+      <div class="btn-row" id="reveal-row">
+        <button class="btn" onclick="revealCard()">Aufdecken</button>
+      </div>
+      <div class="btn-row" id="grade-row" style="display:none">
+        <button class="btn red" onclick="gradeCard(false)">✗ Nicht gewusst</button>
+        <button class="btn green" onclick="gradeCard(true)">✓ Gewusst</button>
+      </div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn secondary small" onclick="endSession()">Sitzung beenden</button>
+        <button class="btn secondary small" style="color:var(--red)" title="Diese Vokabel dauerhaft löschen (Taste: Entf)" onclick="deleteCurrentCard()">🗑️ Vokabel löschen</button>
+      </div>
+    </div>
+
+    <!-- Ergebnis-Ansicht -->
+    <div id="learn-done" style="display:none">
+      <div class="flashcard">
+        <div class="word">🎉 Geschafft!</div>
+        <div class="meta" id="session-result"></div>
+      </div>
+      <div class="btn-row" id="done-buttons">
+        <button class="btn" onclick="backToLearnStart()">Zurück</button>
+        <button class="btn red" id="btn-wrong-done" style="display:none" onclick="startSession('wrong')">❌ Heutige Fehler üben</button>
+        <button class="btn secondary" onclick="showView('dashboard')">Zum Dashboard</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VOKABELN ============ -->
+  <section id="view-vocab" class="view">
+    <div class="panel">
+      <h3 id="form-title">Neue Vokabel</h3>
+      <div class="form-grid">
+        <div><label>Englisch</label><input type="text" id="in-en" placeholder="z. B. lead time"></div>
+        <div><label>Deutsch</label><input type="text" id="in-de" placeholder="z. B. Lieferzeit"></div>
+        <div><label>Kategorie</label><input type="text" id="in-cat" placeholder="z. B. Business" list="cat-list"><datalist id="cat-list"></datalist></div>
+        <div><label>Niveau</label><select id="in-level"><option>A2</option><option selected>B1</option><option>B2</option><option>C1</option></select></div>
+        <div><button class="btn" id="btn-save" onclick="saveCard()">Hinzufügen</button></div>
+      </div>
+      <p class="hint" id="edit-hint" style="display:none; margin-top:8px">Bearbeitungsmodus – <a href="#" onclick="cancelEdit(); return false;">abbrechen</a></p>
+    </div>
+
+    <div class="panel">
+      <div class="toolbar">
+        <input type="text" id="search" placeholder="🔍 Suchen…" oninput="renderTable()">
+        <select id="filter-cat" onchange="renderTable()"><option value="">Alle Kategorien</option></select>
+        <select id="filter-box" onchange="renderTable()">
+          <option value="">Alle Boxen</option>
+          <option value="1">Box 1</option><option value="2">Box 2</option><option value="3">Box 3</option>
+          <option value="4">Box 4</option><option value="5">Box 5</option>
+        </select>
+        <span class="hint" id="table-count"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Englisch</th><th>Deutsch</th><th>Kategorie</th><th>Niveau</th><th>Box</th><th>Fällig</th><th>✓/✗</th><th></th></tr></thead>
+          <tbody id="vocab-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="vocab-empty" style="display:none">Noch keine Vokabeln – füge welche hinzu oder lade ein Startpaket im Tab „Daten".</div>
+    </div>
+  </section>
+
+  <!-- ============ DATEN ============ -->
+  <section id="view-data" class="view">
+    <div class="panel" id="sync-panel">
+      <h3>☁️ Cloud-Sync (PC ↔ iPhone)</h3>
+      <p class="hint" style="margin-bottom:12px">Hält Vokabeln, Lernstand, Statistik und Urlaube auf allen Geräten gleich. Gleicher Account auf allen Geräten anmelden – Änderungen werden automatisch zusammengeführt (pro Karte gewinnt die neuere Änderung). Funktioniert auch offline; synchronisiert wird, sobald wieder Verbindung besteht.</p>
+      <div id="sync-cfg-box" class="sync-grid">
+        <div><label>Supabase Project URL</label><input type="text" id="sync-url" placeholder="https://xxxx.supabase.co" autocapitalize="off" autocorrect="off"></div>
+        <div><label>Supabase anon public key</label><input type="text" id="sync-key" placeholder="eyJ…" autocapitalize="off" autocorrect="off"></div>
+      </div>
+      <div id="sync-login-box">
+        <div class="sync-grid">
+          <div><label>E-Mail</label><input type="email" id="sync-email" autocomplete="username" autocapitalize="off"></div>
+          <div><label>Passwort (min. 6 Zeichen)</label><input type="password" id="sync-pass" autocomplete="current-password"></div>
+        </div>
+        <div class="btn-row" style="justify-content:flex-start">
+          <button class="btn small" onclick="syncLogin(false)">Anmelden</button>
+          <button class="btn small secondary" onclick="syncLogin(true)">Neu registrieren</button>
+        </div>
+      </div>
+      <div id="sync-on-box" style="display:none">
+        <p style="margin-bottom:10px">Angemeldet als <strong id="sync-user"></strong></p>
+        <div class="btn-row" style="justify-content:flex-start">
+          <button class="btn small" onclick="syncNow(true)">🔄 Jetzt synchronisieren</button>
+          <button class="btn small secondary" onclick="syncLogout()">Abmelden</button>
+        </div>
+      </div>
+      <p class="hint" id="sync-status" style="margin-top:10px"></p>
+    </div>
+
+    <div class="panel">
+      <h3>🏖️ Urlaubssperre & lernfreie Tage</h3>
+      <p class="hint" style="margin-bottom:12px">Samstage, Sonntage und NRW-Feiertage sind automatisch lernfrei: Fälligkeiten werden auf den nächsten Lerntag verschoben und dein Streak bleibt erhalten. Zusätzlich kannst du hier Urlaube eintragen – alle Karten, die im Zeitraum fällig wären, werden hinter das Urlaubsende geschoben, in gleicher Reihenfolge und ohne Box-Verlust.</p>
+      <div class="option-row">
+        <div style="max-width:180px"><label>Von</label><input type="date" id="vac-from"></div>
+        <div style="max-width:180px"><label>Bis</label><input type="date" id="vac-to"></div>
+        <div style="align-self:flex-end"><button class="btn small" onclick="addVacation()">Urlaub eintragen</button></div>
+      </div>
+      <ul class="vac-list" id="vac-list"></ul>
+      <p class="hint" style="margin-top:8px">NRW-Feiertage: Neujahr, Karfreitag, Ostermontag, 1. Mai, Christi Himmelfahrt, Pfingstmontag, Fronleichnam, Tag der Deutschen Einheit, Allerheiligen, 1. + 2. Weihnachtstag. Beim Löschen eines Urlaubs bleiben bereits verschobene Fälligkeiten bestehen.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Startpakete</h3>
+      <p class="hint" style="margin-bottom:12px">Fertige Vokabelsets auf B1/B2-Niveau. Bereits vorhandene Wörter werden übersprungen.</p>
+      <div class="btn-row" style="justify-content:flex-start">
+        <button class="btn small" onclick="loadPack('business')">📦 Business / Supply Chain laden (40)</button>
+        <button class="btn small secondary" onclick="loadPack('general')">📦 Allgemein B1/B2 laden (40)</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Backup (JSON)</h3>
+      <p class="hint" style="margin-bottom:12px">Alle Daten (Vokabeln, Lernstände, Statistik, Urlaube) als Datei sichern oder wiederherstellen. Der Lernstand wird zusätzlich automatisch im Browser gespeichert.</p>
+      <div class="btn-row" style="justify-content:flex-start">
+        <button class="btn small" onclick="exportJSON()">⬇ Backup exportieren</button>
+        <button class="btn small secondary" onclick="document.getElementById('import-file').click()">⬆ Backup importieren (ersetzt alles)</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Massenimport</h3>
+      <p class="hint" style="margin-bottom:10px">Eine Vokabel pro Zeile im Format: <code>englisch;deutsch;kategorie;niveau</code> (Kategorie und Niveau optional). Auch direkt aus Excel kopierbar (Tab-getrennt).</p>
+      <textarea id="bulk-input" rows="6" placeholder="warehouse;Lager;Business;B1&#10;to negotiate;verhandeln;Business;B2"></textarea>
+      <div style="margin-top:10px"><button class="btn small" onclick="bulkImport()">Importieren</button></div>
+    </div>
+
+    <div class="panel">
+      <h3>Zurücksetzen</h3>
+      <div class="btn-row" style="justify-content:flex-start">
+        <button class="btn small red" onclick="resetProgress()">Lernstand zurücksetzen (Vokabeln behalten)</button>
+        <button class="btn small red" onclick="resetAll()">Alles löschen</button>
+      </div>
+    </div>
+
+    <p class="footer-note">PWA · funktioniert offline · Daten liegen lokal im Gerät und werden per Cloud-Sync abgeglichen – trotzdem gelegentlich Backup exportieren!</p>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   Vokabeltrainer Englisch – Single-File-App
+   Leitner-System (5 Boxen) + Dashboard + JSON-Backup
+   Lern-Ablauf: heutige Fehler zuerst -> Wiederholungen ->
+   Fehlerrunden -> neue Karten. Extra-Modus "Heutige Fehler üben".
+   Lernfreie Tage: Sa/So, NRW-Feiertage und Urlaube -> Fälligkeiten
+   werden automatisch auf den nächsten Lerntag verschoben.
+   ========================================================= */
+
+const STORAGE_KEY = "vokabeltrainer_en_v1";
+
+// Wiederholungsintervalle je Box (in Tagen)
+const INTERVALS = { 1: 1, 2: 2, 3: 5, 4: 10, 5: 30 };
+const BOX_COLORS = { 1: "#dc2626", 2: "#ea580c", 3: "#eab308", 4: "#3b82f6", 5: "#16a34a" };
+
+// ---------- Zustand ----------
+let state = {
+  cards: [],                 // {id, en, de, cat, level, box, due, correct, wrong}
+  log: {},                   // {"YYYY-MM-DD": {r: Abfragen, c: richtig}}
+  wrongToday: { date: "", ids: [] },  // heute falsch beantwortete Karten
+  vacations: [],             // [{from:"YYYY-MM-DD", to:"YYYY-MM-DD"}]
+  settings: { direction: "en-de", mixAdvanced: true, mixFromBox: 4 },
+  // --- Sync-Metadaten (für das Zusammenführen zwischen Geräten) ---
+  deleted: {},               // {kartenId: Löschzeitpunkt(ms)} – Löschmarken
+  vacUpd: 0, setUpd: 0,      // letzte Änderung Urlaube / Einstellungen
+  logReset: 0                // Zeitpunkt des letzten Statistik-Resets
+};
+
+// Laufende Lernsitzung
+let session = null;          // {mode, phases, phaseIdx, round, queue, index, retry, correct, wrong}
+
+// ---------- Hilfsfunktionen ----------
+function todayStr(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function diffDays(a, b) {
+  return Math.round((new Date(a + "T00:00:00") - new Date(b + "T00:00:00")) / 86400000);
+}
+function fmtDate(dateStr) {
+  return dateStr.slice(8) + "." + dateStr.slice(5, 7) + "." + dateStr.slice(0, 4);
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2500);
+}
+
+// ---------- Lernfreie Tage: Wochenende, NRW-Feiertage, Urlaub ----------
+// Ostersonntag nach der anonymen Gregorianischen Formel (Gauß)
+function easterSunday(year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100,
+        d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+        g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+        i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7,
+        m = Math.floor((a + 11 * h + 22 * l) / 451),
+        month = Math.floor((h + l - 7 * m + 114) / 31),
+        day = ((h + l - 7 * m + 114) % 31) + 1;
+  return year + "-" + String(month).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+}
+// Gesetzliche Feiertage in NRW für ein Jahr
+const _holidayCache = {};
+function nrwHolidays(year) {
+  if (_holidayCache[year]) return _holidayCache[year];
+  const easter = easterSunday(year);
+  const set = new Set([
+    year + "-01-01",          // Neujahr
+    addDays(easter, -2),      // Karfreitag
+    addDays(easter, 1),       // Ostermontag
+    year + "-05-01",          // Tag der Arbeit
+    addDays(easter, 39),      // Christi Himmelfahrt
+    addDays(easter, 50),      // Pfingstmontag
+    addDays(easter, 60),      // Fronleichnam
+    year + "-10-03",          // Tag der Deutschen Einheit
+    year + "-11-01",          // Allerheiligen
+    year + "-12-25",          // 1. Weihnachtstag
+    year + "-12-26"           // 2. Weihnachtstag
+  ]);
+  _holidayCache[year] = set;
+  return set;
+}
+function isHoliday(dateStr) { return nrwHolidays(+dateStr.slice(0, 4)).has(dateStr); }
+function isWeekend(dateStr) {
+  const d = new Date(dateStr + "T00:00:00").getDay();
+  return d === 0 || d === 6; // Sonntag oder Samstag
+}
+function isVacationDay(dateStr) {
+  return (state.vacations || []).some(v => v.from <= dateStr && dateStr <= v.to);
+}
+function isBlockedDay(dateStr) {
+  return isWeekend(dateStr) || isHoliday(dateStr) || isVacationDay(dateStr);
+}
+// Verschiebt ein Datum auf den nächsten Lerntag:
+// - Urlaube: hinter das Urlaubsende, Abstand zum Urlaubsbeginn bleibt erhalten (Reihenfolge stabil)
+// - Wochenenden/Feiertage: einfach auf den nächsten freien Tag
+function nextLearnableDate(dateStr) {
+  let guard = 0;
+  while (guard++ < 500) {
+    const v = (state.vacations || []).find(v => v.from <= dateStr && dateStr <= v.to);
+    if (v) { dateStr = addDays(v.to, 1 + diffDays(dateStr, v.from)); continue; }
+    if (isWeekend(dateStr) || isHoliday(dateStr)) { dateStr = addDays(dateStr, 1); continue; }
+    return dateStr;
+  }
+  return dateStr;
+}
+// Bestehende zukünftige Fälligkeiten von lernfreien Tagen herunterschieben
+// (z. B. nach Update der App oder neuem Urlaubseintrag)
+function migrateDueDates() {
+  let moved = 0;
+  state.cards.forEach(c => {
+    if (c.due > todayStr()) {
+      const d = nextLearnableDate(c.due);
+      if (d !== c.due) { c.due = d; moved++; }
+    }
+  });
+  if (moved) save();
+  return moved;
+}
+
+// ---------- Urlaubsverwaltung ----------
+function addVacation() {
+  const from = document.getElementById("vac-from").value;
+  const to = document.getElementById("vac-to").value;
+  if (!from || !to) { toast("Bitte Von- und Bis-Datum angeben."); return; }
+  if (to < from) { toast("Das Bis-Datum liegt vor dem Von-Datum."); return; }
+  if (to < todayStr()) { toast("Dieser Zeitraum liegt komplett in der Vergangenheit."); return; }
+  if ((state.vacations || []).some(v => !(to < v.from || from > v.to))) {
+    toast("Zeitraum überschneidet sich mit einem bestehenden Urlaub."); return;
+  }
+  state.vacations.push({ from, to });
+  state.vacations.sort((a, b) => a.from.localeCompare(b.from));
+  const moved = migrateDueDates();
+  save();
+  document.getElementById("vac-from").value = "";
+  document.getElementById("vac-to").value = "";
+  renderVacations();
+  renderDashboard();
+  toast("Urlaub eingetragen ✓" + (moved ? " – " + moved + " Fälligkeiten verschoben" : ""));
+}
+function deleteVacation(idx) {
+  const v = state.vacations[idx];
+  if (!v) return;
+  if (!confirm("Urlaub " + fmtDate(v.from) + " – " + fmtDate(v.to) + " löschen? Bereits verschobene Fälligkeiten bleiben bestehen.")) return;
+  state.vacations.splice(idx, 1);
+  save();
+  renderVacations();
+  renderDashboard();
+  toast("Urlaub gelöscht.");
+}
+function renderVacations() {
+  const el = document.getElementById("vac-list");
+  const today = todayStr();
+  // Lange vergangene Urlaube automatisch aufräumen (für Streak-Berechnung 60 Tage behalten)
+  state.vacations = (state.vacations || []).filter(v => diffDays(today, v.to) < 60);
+  el.innerHTML = (state.vacations || []).map((v, i) => {
+    const active = v.from <= today && today <= v.to;
+    const status = active ? "🏖️ aktiv" : (v.from > today ? "geplant" : "vorbei");
+    return '<li class="' + (active ? "active-vac" : "") + '">' +
+      "<span>🗓️ " + fmtDate(v.from) + " – " + fmtDate(v.to) + "</span>" +
+      '<span class="hint">' + status + "</span>" +
+      '<span class="spacer"></span>' +
+      '<button class="rowbtn" title="Löschen" onclick="deleteVacation(' + i + ')">🗑️</button></li>';
+  }).join("") || '<li class="hint" style="background:none">Kein Urlaub eingetragen.</li>';
+}
+function renderDayBadges() {
+  const today = todayStr();
+  let html = "";
+  if (isVacationDay(today)) {
+    html = '<div class="vacation-badge">🏖️ Urlaubssperre aktiv – Fälligkeiten werden automatisch verschoben. Lernen ist trotzdem möglich!</div>';
+  } else if (isHoliday(today)) {
+    html = '<div class="vacation-badge">🎉 Heute ist Feiertag (NRW) – lernfrei, dein Streak bleibt erhalten. Lernen ist trotzdem möglich!</div>';
+  } else if (isWeekend(today)) {
+    html = '<div class="vacation-badge">📅 Wochenende – lernfrei, dein Streak bleibt erhalten. Lernen ist trotzdem möglich!</div>';
+  }
+  document.getElementById("vacation-badge-dash").innerHTML = html;
+  document.getElementById("vacation-badge-learn").innerHTML = html;
+}
+
+// ---------- Speichern / Laden ----------
+// Änderungserkennung: Beim Speichern wird verglichen, was sich seit dem letzten Stand
+// geändert hat -> Zeitstempel "upd" pro Karte, Löschmarken, Urlaubs-/Einstellungs-Zeitstempel.
+// So müssen die übrigen Funktionen der App nicht angepasst werden.
+let _snap = { cards: {}, vac: "", set: "" };
+function cardSig(c) { return [c.en, c.de, c.cat, c.level, c.box, c.due, c.correct, c.wrong].join("\u0001"); }
+function takeSnapshot() {
+  _snap.cards = {};
+  state.cards.forEach(c => { _snap.cards[c.id] = cardSig(c); });
+  _snap.vac = JSON.stringify(state.vacations);
+  _snap.set = JSON.stringify(state.settings);
+}
+function trackChanges() {
+  const now = Date.now();
+  const ids = new Set();
+  state.cards.forEach(c => {
+    ids.add(c.id);
+    const s = cardSig(c);
+    if (_snap.cards[c.id] !== s) { c.upd = now; _snap.cards[c.id] = s; }
+  });
+  Object.keys(_snap.cards).forEach(id => {
+    if (!ids.has(id)) { state.deleted[id] = now; delete _snap.cards[id]; }
+  });
+  const v = JSON.stringify(state.vacations);
+  if (v !== _snap.vac) { state.vacUpd = now; _snap.vac = v; }
+  const s = JSON.stringify(state.settings);
+  if (s !== _snap.set) { state.setUpd = now; _snap.set = s; }
+}
+function saveLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function save() { trackChanges(); saveLocal(); syncSoon(); }
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.cards)) state = Object.assign(state, parsed);
+    }
+  } catch (e) { console.warn("Laden fehlgeschlagen:", e); }
+  if (!state.wrongToday) state.wrongToday = { date: "", ids: [] };
+  if (!Array.isArray(state.vacations)) state.vacations = [];
+  if (!state.settings) state.settings = { direction: "en-de" };
+  if (typeof state.settings.mixAdvanced !== "boolean") state.settings.mixAdvanced = true;
+  if (![2, 3, 4, 5].includes(state.settings.mixFromBox)) state.settings.mixFromBox = 4;
+  if (!state.deleted || typeof state.deleted !== "object") state.deleted = {};
+  ["vacUpd", "setUpd", "logReset"].forEach(k => { if (typeof state[k] !== "number") state[k] = 0; });
+  takeSnapshot();
+}
+
+// ---------- Karten-Logik ----------
+function newCard(en, de, cat, level) {
+  // Neue Karten sind sofort fällig (heute), auch am Wochenende –
+  // wer am Wochenende Vokabeln anlegt, will sie meist auch gleich lernen.
+  return { id: uid(), en: en.trim(), de: de.trim(), cat: (cat || "Allgemein").trim(), level: (level || "B1").trim(),
+           box: 1, due: todayStr(), correct: 0, wrong: 0 };
+}
+function isDue(card) { return card.due <= todayStr(); }
+// "Neu" = noch nie abgefragt (weder richtig noch falsch beantwortet)
+function isNew(card) { return (card.correct + card.wrong) === 0; }
+function dueCards(cat) {
+  return state.cards.filter(c => isDue(c) && (!cat || c.cat === cat));
+}
+// Heute falsch beantwortete Karten (Tagesliste; setzt sich um Mitternacht zurück)
+function wrongTodayIds() {
+  if (state.wrongToday.date !== todayStr()) state.wrongToday = { date: todayStr(), ids: [] };
+  return state.wrongToday.ids;
+}
+function wrongTodayCards(cat) {
+  const ids = wrongTodayIds();
+  return state.cards.filter(c => ids.includes(c.id) && (!cat || c.cat === cat));
+}
+function markWrongToday(card) {
+  const ids = wrongTodayIds();
+  if (!ids.includes(card.id)) ids.push(card.id);
+}
+function existsCard(en, de) {
+  const e = en.trim().toLowerCase(), d = de.trim().toLowerCase();
+  return state.cards.some(c => c.en.toLowerCase() === e && c.de.toLowerCase() === d);
+}
+function logAnswer(correct) {
+  const t = todayStr();
+  if (!state.log[t]) state.log[t] = { r: 0, c: 0 };
+  state.log[t].r++;
+  if (correct) state.log[t].c++;
+}
+
+// ---------- Navigation ----------
+function showView(name) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-" + name).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+  if (name === "dashboard") renderDashboard();
+  if (name === "learn") { backToLearnStart(); }
+  if (name === "vocab") { renderTable(); refreshCatLists(); }
+  if (name === "data") { renderVacations(); }
+}
+
+// ---------- Dashboard ----------
+function renderDashboard() {
+  const cards = state.cards;
+  const started = cards.filter(c => !isNew(c));
+  document.getElementById("kpi-total").textContent = cards.length;
+  document.getElementById("kpi-started").textContent = started.length;
+  document.getElementById("kpi-due").textContent = dueCards().length;
+  document.getElementById("kpi-wrong-today").textContent = wrongTodayCards().length;
+  document.getElementById("kpi-mastered").textContent = cards.filter(c => c.box === 5).length;
+  document.getElementById("kpi-streak").textContent = calcStreak();
+  const totR = Object.values(state.log).reduce((s, d) => s + d.r, 0);
+  const totC = Object.values(state.log).reduce((s, d) => s + d.c, 0);
+  document.getElementById("kpi-rate").textContent = totR ? Math.round(totC / totR * 100) + "%" : "–";
+
+  renderDayBadges();
+  renderActivityChart();
+  renderBoxChart();
+  // Wortschatz: gelernte Vokabeln im Verhältnis zum Gesamtbestand je Gruppe
+  renderProgressBars("chart-cats", groupProgress(cards, c => c.cat), "var(--accent)");
+  renderProgressBars("chart-levels", groupProgress(cards, c => c.level, ["A2", "B1", "B2", "C1"]), "var(--green)");
+  renderUpcoming();
+}
+
+function calcStreak() {
+  // Lernfreie Tage (Sa/So, Feiertage, Urlaub) unterbrechen den Streak nicht,
+  // zählen aber nur mit, wenn tatsächlich gelernt wurde.
+  let streak = 0;
+  let offset = state.log[todayStr()] ? 0 : -1;
+  let guard = 0;
+  while (guard++ < 3650) {
+    const d = todayStr(offset);
+    if (state.log[d]) { streak++; offset--; }
+    else if (isBlockedDay(d)) { offset--; }   // lernfreien Tag überspringen
+    else break;
+  }
+  return streak;
+}
+
+function renderActivityChart() {
+  const el = document.getElementById("chart-activity");
+  el.innerHTML = "";
+  const days = [];
+  for (let i = 13; i >= 0; i--) days.push(todayStr(-i));
+  const max = Math.max(1, ...days.map(d => state.log[d]?.r || 0));
+  days.forEach(d => {
+    const r = state.log[d]?.r || 0, c = state.log[d]?.c || 0;
+    const col = document.createElement("div");
+    col.className = "bcol";
+    const lbl = d.slice(8) + "." + d.slice(5, 7) + ".";
+    const freeMark = !r && isBlockedDay(d) ? (isVacationDay(d) ? "🏖" : (isHoliday(d) ? "🎉" : "·")) : "";
+    col.innerHTML =
+      '<div class="bval">' + (r || freeMark) + '</div>' +
+      '<div style="width:100%; display:flex; gap:2px; align-items:flex-end; flex:1">' +
+        '<div class="bar" style="height:' + (r / max * 100) + '%" title="' + r + ' Abfragen"></div>' +
+        '<div class="bar correct" style="height:' + (c / max * 100) + '%" title="' + c + ' richtig"></div>' +
+      '</div>' +
+      '<div class="blbl">' + lbl + '</div>';
+    el.appendChild(col);
+  });
+}
+
+// Gruppiert Karten und liefert je Gruppe [Name, gelernt, gesamt]
+function groupProgress(cards, keyFn, order) {
+  const map = {};
+  cards.forEach(c => {
+    const k = keyFn(c) || "–";
+    if (!map[k]) map[k] = { total: 0, learned: 0 };
+    map[k].total++;
+    if (!isNew(c)) map[k].learned++;
+  });
+  let keys = Object.keys(map);
+  if (order) keys = order.filter(k => map[k]).concat(keys.filter(k => !order.includes(k)));
+  else keys.sort((a, b) => map[b].total - map[a].total);
+  return keys.map(k => [k, map[k].learned, map[k].total]);
+}
+
+// Balken: heller Hintergrund = gesamt, farbige Füllung = gelernt, Zahl = "gelernt / gesamt"
+function renderProgressBars(elId, triples, color) {
+  const el = document.getElementById(elId);
+  if (!triples.length) { el.innerHTML = '<div class="empty">Keine Daten</div>'; return; }
+  const max = Math.max(...triples.map(t => t[2]));
+  el.innerHTML = triples.map(([k, learned, total]) =>
+    '<div class="hbar-row wide-num"><span>' + esc(k) + '</span>' +
+    '<div class="hbar-track">' +
+      '<div class="hbar-total" style="width:' + (total / max * 100) + '%"></div>' +
+      '<div class="hbar-fill on-top" style="width:' + (total ? learned / max * 100 : 0) + '%; background:' + color + '"></div>' +
+    '</div>' +
+    '<span class="num">' + learned + ' / ' + total + '</span></div>'
+  ).join("");
+}
+
+function renderBoxChart() {
+  const el = document.getElementById("chart-boxes");
+  const counts = [1, 2, 3, 4, 5].map(b => state.cards.filter(c => c.box === b).length);
+  const max = Math.max(1, ...counts);
+  el.innerHTML = counts.map((v, i) =>
+    '<div class="hbar-row"><span><span class="boxdot" style="background:' + BOX_COLORS[i + 1] + '">' + (i + 1) + '</span> Box ' + (i + 1) + '</span>' +
+    '<div class="hbar-track"><div class="hbar-fill" style="width:' + (v / max * 100) + '%; background:' + BOX_COLORS[i + 1] + '"></div></div>' +
+    '<span class="num">' + v + '</span></div>'
+  ).join("");
+}
+
+function renderUpcoming() {
+  const el = document.getElementById("chart-upcoming");
+  const days = [];
+  for (let i = 0; i < 7; i++) days.push(todayStr(i));
+  const counts = days.map((d, i) => {
+    // Tag 0: alles was heute oder früher fällig ist
+    if (i === 0) return state.cards.filter(c => c.due <= d).length;
+    return state.cards.filter(c => c.due === d).length;
+  });
+  const max = Math.max(1, ...counts);
+  const names = ["Heute", "Morgen"];
+  el.innerHTML = counts.map((v, i) => {
+    let lbl = names[i] || days[i].slice(8) + "." + days[i].slice(5, 7) + ".";
+    const d = days[i];
+    if (isVacationDay(d)) lbl += " 🏖";
+    else if (isHoliday(d)) lbl += " 🎉";
+    else if (isWeekend(d)) lbl += " 📅";
+    return '<div class="hbar-row"><span>' + lbl + '</span>' +
+      '<div class="hbar-track"><div class="hbar-fill" style="width:' + (v / max * 100) + '%; background:var(--orange)"></div></div>' +
+      '<span class="num">' + v + '</span></div>';
+  }).join("");
+}
+
+// ---------- Lernen ----------
+function setDirection(dir) {
+  state.settings.direction = dir;
+  save();
+  document.querySelectorAll("#dir-options .chip").forEach(c => c.classList.toggle("active", c.dataset.dir === dir));
+  renderMixOption();
+}
+// Gemischte Abfrage für fortgeschrittene Karten (ab einer bestimmten Box)
+function setMixAdvanced(on) {
+  state.settings.mixAdvanced = !!on;
+  save();
+  renderMixOption();
+}
+function setMixBox(box) {
+  state.settings.mixFromBox = +box;
+  save();
+  renderMixOption();
+}
+function renderMixOption() {
+  const s = state.settings;
+  const cb = document.getElementById("mix-adv");
+  const sel = document.getElementById("mix-box");
+  cb.checked = s.mixAdvanced;
+  sel.value = String(s.mixFromBox);
+  // Bei Grundrichtung "Gemischt" ist die Option ohne Wirkung
+  const irrelevant = s.direction === "mix";
+  cb.disabled = irrelevant; sel.disabled = irrelevant || !s.mixAdvanced;
+  const dirLbl = s.direction === "de-en" ? "DE → EN" : "EN → DE";
+  document.getElementById("mix-hint").textContent = irrelevant
+    ? "Grundrichtung ist bereits „Gemischt“ – alle Karten werden zufällig in beide Richtungen abgefragt."
+    : s.mixAdvanced
+      ? "Karten in Box 1–" + (s.mixFromBox - 1) + " werden " + dirLbl + " abgefragt, Karten ab Box " + s.mixFromBox + " zufällig in beide Richtungen."
+      : "Alle Karten werden " + dirLbl + " abgefragt.";
+}
+
+function backToLearnStart() {
+  session = null;
+  document.getElementById("learn-start").style.display = "";
+  document.getElementById("learn-session").style.display = "none";
+  document.getElementById("learn-done").style.display = "none";
+  setDirection(state.settings.direction);
+  refreshCatLists();
+  renderDayBadges();
+  const cat = document.getElementById("learn-cat").value;
+  const due = dueCards(cat);
+  const reviews = due.filter(c => !isNew(c)).length;
+  const fresh = due.length - reviews;
+  document.getElementById("due-info").textContent =
+    due.length + " Karten fällig (" + reviews + " Wiederholungen, " + fresh + " neue)";
+  // Button "Heutige Fehler üben" mit Anzahl aktualisieren
+  const wrongN = wrongTodayCards(cat).length;
+  const btn = document.getElementById("btn-wrong");
+  btn.textContent = "❌ Heutige Fehler üben (" + wrongN + ")";
+  btn.disabled = wrongN === 0;
+}
+
+function startSession(mode) {
+  const cat = document.getElementById("learn-cat").value;
+  let pool;
+  if (mode === "due") pool = dueCards(cat);
+  else if (mode === "wrong") pool = wrongTodayCards(cat);
+  else pool = state.cards.filter(c => !cat || c.cat === cat);
+  if (!pool.length) {
+    toast(mode === "due" ? "Keine fälligen Karten – super! 🎉"
+        : mode === "wrong" ? "Heute keine falschen Karten – stark! 💪"
+        : "Keine Vokabeln vorhanden.");
+    return;
+  }
+  // Ablauf in Phasen: erst fällige Wiederholungen (heutige Fehler zuerst), danach neue Karten.
+  // Falsch beantwortete Karten kommen am Ende jeder Runde erneut dran,
+  // bis alle richtig beantwortet wurden – erst dann startet die nächste Phase.
+  let phases;
+  if (mode === "due") {
+    const wids = wrongTodayIds();
+    const reviews = pool.filter(c => !isNew(c));
+    // Innerhalb der Wiederholungen: heute falsch beantwortete Karten zuerst
+    const reviewsOrdered = shuffle(reviews.filter(c => wids.includes(c.id)))
+      .concat(shuffle(reviews.filter(c => !wids.includes(c.id))));
+    phases = [
+      { name: "🔁 Wiederholungen", cards: reviewsOrdered },
+      { name: "🆕 Neue Karten",    cards: shuffle(pool.filter(c => isNew(c))) }
+    ].filter(p => p.cards.length);
+  } else if (mode === "wrong") {
+    phases = [{ name: "❌ Heutige Fehler", cards: shuffle(pool) }];
+  } else {
+    phases = [{ name: "Freies Üben", cards: shuffle(pool) }];
+  }
+  session = { mode, phases, phaseIdx: 0, round: 1, queue: phases[0].cards, index: 0, retry: [], correct: 0, wrong: 0 };
+  document.getElementById("learn-start").style.display = "none";
+  document.getElementById("learn-session").style.display = "";
+  document.getElementById("learn-done").style.display = "none";
+  showCard();
+}
+
+function currentDirection(card) {
+  const d = state.settings.direction;
+  const rnd = () => (Math.random() < 0.5 ? "en-de" : "de-en");
+  if (d === "mix") return rnd();
+  // Fortgeschrittene Karten (ab eingestellter Box) gemischt abfragen
+  if (state.settings.mixAdvanced && card && card.box >= state.settings.mixFromBox) return rnd();
+  return d;
+}
+
+function showCard() {
+  const card = session.queue[session.index];
+  session.cardDir = currentDirection(card);
+  const front = session.cardDir === "en-de" ? card.en : card.de;
+  const back  = session.cardDir === "en-de" ? card.de : card.en;
+  const mixed = state.settings.direction === "mix" || (state.settings.mixAdvanced && card.box >= state.settings.mixFromBox);
+  document.getElementById("card-direction").textContent =
+    (session.cardDir === "en-de" ? "Englisch → Deutsch" : "Deutsch → Englisch") + (mixed ? " 🔀" : "");
+  document.getElementById("card-front").textContent = front;
+  const backEl = document.getElementById("card-back");
+  backEl.textContent = back;
+  backEl.style.display = "none";
+  document.getElementById("card-meta").textContent =
+    (isNew(card) ? "🆕 Neu · " : "🔁 Wiederholung · ") + card.cat + " · " + card.level + " · Box " + card.box;
+  document.getElementById("reveal-row").style.display = "";
+  document.getElementById("grade-row").style.display = "none";
+  const phase = session.phases[session.phaseIdx];
+  let label = phase.name;
+  if (session.round > 1) label += " · Fehlerrunde " + (session.round - 1);
+  document.getElementById("session-progress").textContent =
+    label + " – Karte " + (session.index + 1) + " von " + session.queue.length;
+  document.getElementById("session-bar").style.width = (session.index / session.queue.length * 100) + "%";
+}
+
+function revealCard() {
+  document.getElementById("card-back").style.display = "";
+  document.getElementById("reveal-row").style.display = "none";
+  document.getElementById("grade-row").style.display = "";
+}
+
+function gradeCard(known) {
+  const card = session.queue[session.index];
+  // Statistik immer aktualisieren
+  if (known) { card.correct++; session.correct++; } else { card.wrong++; session.wrong++; }
+  logAnswer(known);
+  // Falsche Karten in die Tagesliste "heute nicht gewusst" aufnehmen
+  if (!known) markWrongToday(card);
+  // Leitner-Boxen nur im Modus "fällige Karten" verändern
+  if (session.mode === "due") {
+    if (known) {
+      // Box-Aufstieg nur beim ersten Versuch (Runde 1);
+      // in Fehlerrunden bleibt die Karte in Box 1 und wird auf morgen gelegt.
+      if (session.round === 1) card.box = Math.min(5, card.box + 1);
+      // Neue Fälligkeit an lernfreien Tagen (Sa/So, Feiertag, Urlaub) vorbeischieben
+      card.due = nextLearnableDate(todayStr(INTERVALS[card.box]));
+    } else {
+      card.box = 1;
+      card.due = todayStr(); // heute erneut fällig (es wird ja gerade gelernt)
+    }
+  }
+  // Falsche Karten am Rundenende erneut abfragen
+  if (!known) session.retry.push(card);
+  save();
+  nextCard();
+}
+
+// Aktuelle Karte während der Abfrage dauerhaft löschen
+function deleteCurrentCard() {
+  if (!session) return;
+  const card = session.queue[session.index];
+  if (!card) return;
+  if (!confirm("„" + card.en + " – " + card.de + "“ dauerhaft aus dem Vokabeltrainer löschen?")) return;
+  const id = card.id;
+  // Aus Bestand und Tagesliste entfernen
+  state.cards = state.cards.filter(c => c.id !== id);
+  state.wrongToday.ids = (state.wrongToday.ids || []).filter(x => x !== id);
+  // Aus allen Warteschlangen der laufenden Sitzung entfernen
+  session.phases.forEach(p => { p.cards = p.cards.filter(c => c.id !== id); });
+  session.retry = session.retry.filter(c => c.id !== id);
+  session.queue = session.queue.filter(c => c.id !== id);
+  save();
+  toast("Vokabel gelöscht 🗑️");
+  // Index zeigt jetzt auf die nächste Karte -> nextCard() zählt wieder hoch
+  session.index--;
+  nextCard();
+}
+
+function nextCard() {
+  session.index++;
+  if (session.index < session.queue.length) { showCard(); return; }
+  // Runde beendet: erst alle falschen Karten wiederholen, bis keine mehr übrig sind
+  if (session.retry.length) {
+    session.queue = shuffle(session.retry);
+    session.retry = [];
+    session.index = 0;
+    session.round++;
+    toast("Fehlerrunde: " + session.queue.length + " Karte(n) nochmal üben 💪");
+    showCard();
+    return;
+  }
+  // Phase beendet: weiter zur nächsten Phase (z. B. von Wiederholungen zu neuen Karten)
+  session.phaseIdx++;
+  if (session.phaseIdx < session.phases.length) {
+    session.queue = session.phases[session.phaseIdx].cards;
+    session.index = 0;
+    session.round = 1;
+    toast("Wiederholungen geschafft – jetzt kommen die neuen Karten! 🎉");
+    showCard();
+    return;
+  }
+  finishSession();
+}
+
+function finishSession() {
+  // Keine einzige Antwort (z. B. alle Karten gelöscht) -> direkt zurück zur Startansicht
+  if ((session.correct + session.wrong) === 0) { backToLearnStart(); return; }
+  document.getElementById("learn-session").style.display = "none";
+  document.getElementById("learn-done").style.display = "";
+  const n = session.correct + session.wrong;
+  const pct = n ? Math.round(session.correct / n * 100) : 0;
+  document.getElementById("session-result").textContent =
+    n + " Antworten · " + session.correct + " gewusst · " + session.wrong + " nicht gewusst · " + pct + " % Erfolgsquote";
+  // Nach der Sitzung anbieten, die heutigen Fehler direkt zu üben
+  const cat = document.getElementById("learn-cat").value;
+  const wrongN = wrongTodayCards(cat).length;
+  const btn = document.getElementById("btn-wrong-done");
+  if (wrongN > 0 && session.mode !== "wrong") {
+    btn.textContent = "❌ Heutige Fehler üben (" + wrongN + ")";
+    btn.style.display = "";
+  } else {
+    btn.style.display = "none";
+  }
+}
+
+function endSession() {
+  if (session && (session.correct + session.wrong) > 0) finishSession();
+  else backToLearnStart();
+}
+
+// Tastatursteuerung: Leertaste = aufdecken, 1/← = nicht gewusst, 2/→ = gewusst
+document.addEventListener("keydown", e => {
+  if (!session || document.getElementById("learn-session").style.display === "none") return;
+  if (e.key === "Delete") { e.preventDefault(); deleteCurrentCard(); return; }
+  const revealVisible = document.getElementById("reveal-row").style.display !== "none";
+  if ((e.key === " " || e.key === "Enter") && revealVisible) { e.preventDefault(); revealCard(); }
+  else if (!revealVisible) {
+    if (e.key === "1" || e.key === "ArrowLeft") gradeCard(false);
+    if (e.key === "2" || e.key === "ArrowRight") gradeCard(true);
+  }
+});
+
+// ---------- Vokabelverwaltung ----------
+let editId = null;
+
+function refreshCatLists() {
+  const cats = [...new Set(state.cards.map(c => c.cat))].sort();
+  const opts = '<option value="">Alle Kategorien</option>' + cats.map(c => '<option>' + esc(c) + '</option>').join("");
+  ["filter-cat", "learn-cat"].forEach(id => {
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = opts;
+    if (cats.includes(cur)) el.value = cur;
+  });
+  document.getElementById("cat-list").innerHTML = cats.map(c => '<option value="' + esc(c) + '">').join("");
+}
+
+function saveCard() {
+  const en = document.getElementById("in-en").value.trim();
+  const de = document.getElementById("in-de").value.trim();
+  const cat = document.getElementById("in-cat").value.trim() || "Allgemein";
+  const level = document.getElementById("in-level").value;
+  if (!en || !de) { toast("Bitte Englisch und Deutsch ausfüllen."); return; }
+
+  if (editId) {
+    const card = state.cards.find(c => c.id === editId);
+    if (card) { card.en = en; card.de = de; card.cat = cat; card.level = level; }
+    toast("Vokabel aktualisiert ✓");
+    cancelEdit();
+  } else {
+    if (existsCard(en, de)) { toast("Diese Vokabel existiert bereits."); return; }
+    state.cards.push(newCard(en, de, cat, level));
+    toast("„" + en + "“ hinzugefügt ✓");
+    document.getElementById("in-en").value = "";
+    document.getElementById("in-de").value = "";
+    document.getElementById("in-en").focus();
+  }
+  save();
+  renderTable();
+  refreshCatLists();
+}
+
+function editCard(id) {
+  const card = state.cards.find(c => c.id === id);
+  if (!card) return;
+  editId = id;
+  document.getElementById("in-en").value = card.en;
+  document.getElementById("in-de").value = card.de;
+  document.getElementById("in-cat").value = card.cat;
+  document.getElementById("in-level").value = card.level;
+  document.getElementById("form-title").textContent = "Vokabel bearbeiten";
+  document.getElementById("btn-save").textContent = "Speichern";
+  document.getElementById("edit-hint").style.display = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cancelEdit() {
+  editId = null;
+  document.getElementById("in-en").value = "";
+  document.getElementById("in-de").value = "";
+  document.getElementById("form-title").textContent = "Neue Vokabel";
+  document.getElementById("btn-save").textContent = "Hinzufügen";
+  document.getElementById("edit-hint").style.display = "none";
+}
+
+function deleteCard(id) {
+  const card = state.cards.find(c => c.id === id);
+  if (!card) return;
+  if (!confirm("„" + card.en + " – " + card.de + "“ wirklich löschen?")) return;
+  state.cards = state.cards.filter(c => c.id !== id);
+  if (editId === id) cancelEdit();
+  save();
+  renderTable();
+  refreshCatLists();
+  toast("Gelöscht.");
+}
+
+function renderTable() {
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const cat = document.getElementById("filter-cat").value;
+  const box = document.getElementById("filter-box").value;
+  const rows = state.cards.filter(c =>
+    (!q || c.en.toLowerCase().includes(q) || c.de.toLowerCase().includes(q)) &&
+    (!cat || c.cat === cat) &&
+    (!box || String(c.box) === box)
+  ).sort((a, b) => a.en.localeCompare(b.en));
+
+  const tbody = document.getElementById("vocab-tbody");
+  tbody.innerHTML = rows.map(c => {
+    const dueLbl = c.due <= todayStr() ? '<strong style="color:var(--orange)">heute</strong>' : fmtDate(c.due);
+    return "<tr>" +
+      "<td><strong>" + esc(c.en) + "</strong></td>" +
+      "<td>" + esc(c.de) + "</td>" +
+      '<td><span class="tag">' + esc(c.cat) + "</span></td>" +
+      '<td><span class="tag lvl">' + esc(c.level) + "</span></td>" +
+      '<td><span class="boxdot" style="background:' + BOX_COLORS[c.box] + '">' + c.box + "</span></td>" +
+      "<td>" + dueLbl + "</td>" +
+      '<td style="color:var(--muted)">' + c.correct + "/" + c.wrong + "</td>" +
+      '<td style="white-space:nowrap">' +
+        '<button class="rowbtn" title="Bearbeiten" onclick="editCard(\'' + c.id + '\')">✏️</button>' +
+        '<button class="rowbtn" title="Löschen" onclick="deleteCard(\'' + c.id + '\')">🗑️</button>' +
+      "</td></tr>";
+  }).join("");
+  document.getElementById("vocab-empty").style.display = rows.length ? "none" : "";
+  document.getElementById("table-count").textContent = rows.length + " von " + state.cards.length + " Vokabeln";
+}
+
+// ---------- Import / Export ----------
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "vokabeltrainer-backup-" + todayStr() + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Backup exportiert ✓");
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !Array.isArray(data.cards)) throw new Error("Ungültiges Format");
+      if (!confirm("Backup mit " + data.cards.length + " Vokabeln importieren? Alle aktuellen Daten werden ersetzt.")) return;
+      // Sync: alte Karten, die im Backup fehlen, als gelöscht markieren; importierte Karten gewinnen
+      const now = Date.now();
+      const del = Object.assign({}, state.deleted);
+      const newIds = new Set(data.cards.map(c => c.id));
+      state.cards.forEach(c => { if (!newIds.has(c.id)) del[c.id] = now; });
+      data.cards.forEach(c => { c.upd = now; delete del[c.id]; });
+      state = {
+        cards: data.cards,
+        log: data.log || {},
+        wrongToday: data.wrongToday || { date: "", ids: [] },
+        vacations: Array.isArray(data.vacations) ? data.vacations : [],
+        settings: Object.assign({ direction: "en-de", mixAdvanced: true, mixFromBox: 4 }, data.settings || {}),
+        deleted: del, vacUpd: now, setUpd: now, logReset: now
+      };
+      takeSnapshot();
+      migrateDueDates();
+      save();
+      renderDashboard(); renderTable(); refreshCatLists(); renderVacations();
+      toast("Backup importiert ✓ (" + state.cards.length + " Vokabeln)");
+    } catch (e) { alert("Import fehlgeschlagen: " + e.message); }
+  };
+  reader.readAsText(file);
+  input.value = "";
+}
+
+function bulkImport() {
+  const text = document.getElementById("bulk-input").value.trim();
+  if (!text) { toast("Bitte Vokabeln eingeben."); return; }
+  let added = 0, skipped = 0;
+  text.split(/\r?\n/).forEach(line => {
+    if (!line.trim()) return;
+    const parts = line.includes("\t") ? line.split("\t") : line.split(";");
+    const [en, de, cat, level] = parts.map(p => (p || "").trim());
+    if (!en || !de) { skipped++; return; }
+    if (existsCard(en, de)) { skipped++; return; }
+    state.cards.push(newCard(en, de, cat, level));
+    added++;
+  });
+  save();
+  renderTable(); refreshCatLists();
+  document.getElementById("bulk-input").value = "";
+  toast(added + " hinzugefügt" + (skipped ? ", " + skipped + " übersprungen" : "") + " ✓");
+}
+
+// ---------- Startpakete ----------
+const PACKS = {
+  business: [
+    ["supply chain","Lieferkette","B1"],["procurement","Beschaffung","B2"],["purchase order","Bestellung","B1"],
+    ["lead time","Lieferzeit / Vorlaufzeit","B1"],["inventory","Lagerbestand","B1"],["warehouse","Lager","B1"],
+    ["shipment","Sendung / Lieferung","B1"],["delivery date","Liefertermin","B1"],["supplier","Lieferant","B1"],
+    ["demand","Nachfrage / Bedarf","B1"],["forecast","Prognose","B1"],["stock level","Bestandsniveau","B1"],
+    ["shortage","Engpass / Knappheit","B2"],["backlog","Auftragsrückstand","B2"],["invoice","Rechnung","B1"],
+    ["quotation","Angebot (Preisangebot)","B2"],["terms of payment","Zahlungsbedingungen","B2"],
+    ["to expedite","beschleunigen (Auftrag/Lieferung)","B2"],["to postpone","verschieben / aufschieben","B1"],
+    ["to confirm","bestätigen","B1"],["on schedule","im Zeitplan","B1"],["delay","Verzögerung","B1"],
+    ["freight","Fracht","B2"],["customs","Zoll","B1"],["batch","Charge / Los","B2"],
+    ["safety stock","Sicherheitsbestand","B2"],["replenishment","Nachschub / Auffüllung","B2"],
+    ["stockout","Fehlbestand / Bestandslücke","B2"],["turnover","Umsatz / Umschlag","B2"],
+    ["gross margin","Bruttomarge","B2"],["accounts payable","Verbindlichkeiten","B2"],
+    ["to negotiate","verhandeln","B1"],["commitment","Zusage / Verpflichtung","B2"],
+    ["compliance","Regelkonformität","B2"],["milestone","Meilenstein","B1"],
+    ["stakeholder","Interessenvertreter / Beteiligter","B2"],["to allocate","zuweisen / zuteilen","B2"],
+    ["constraint","Einschränkung / Engpass","B2"],["throughput","Durchsatz","C1"],
+    ["procurement cost","Beschaffungskosten","B2"]
+  ],
+  general: [
+    ["to achieve","erreichen","B1"],["to assume","annehmen / vermuten","B2"],["to convince","überzeugen","B1"],
+    ["reliable","zuverlässig","B1"],["accurate","genau / präzise","B2"],["to improve","verbessern","B1"],
+    ["to reduce","verringern / reduzieren","B1"],["approximately","ungefähr","B1"],["available","verfügbar","B1"],
+    ["despite","trotz","B1"],["although","obwohl","B1"],["to consider","berücksichtigen / erwägen","B1"],
+    ["efficient","effizient","B1"],["to provide","bereitstellen / liefern","B1"],["purpose","Zweck","B1"],
+    ["to require","erfordern / benötigen","B1"],["issue","Problem / Thema","B1"],["to solve","lösen","B1"],
+    ["immediately","sofort","B1"],["currently","derzeit / aktuell","B1"],["to increase","erhöhen / steigen","B1"],
+    ["to decrease","sinken / verringern","B1"],["sufficient","ausreichend","B2"],["to avoid","vermeiden","B1"],
+    ["benefit","Vorteil / Nutzen","B1"],["to develop","entwickeln","B1"],["experience","Erfahrung","B1"],
+    ["knowledge","Wissen","B1"],["to suggest","vorschlagen","B1"],["opportunity","Gelegenheit / Chance","B1"],
+    ["responsible","verantwortlich","B1"],["to depend on","abhängen von","B1"],["common","üblich / häufig","B1"],
+    ["to explain","erklären","B1"],["to receive","erhalten","B1"],["to expect","erwarten","B1"],
+    ["certain","sicher / bestimmt","B1"],["entire","gesamt","B2"],["to remain","bleiben","B2"],
+    ["therefore","deshalb / daher","B1"]
+  ]
+};
+
+function loadPack(name) {
+  const cat = name === "business" ? "Business" : "Allgemein";
+  let added = 0, skipped = 0;
+  PACKS[name].forEach(([en, de, level]) => {
+    if (existsCard(en, de)) { skipped++; return; }
+    state.cards.push(newCard(en, de, cat, level));
+    added++;
+  });
+  save();
+  renderDashboard(); renderTable(); refreshCatLists();
+  toast("Startpaket geladen: " + added + " neu" + (skipped ? ", " + skipped + " übersprungen" : "") + " ✓");
+}
+
+// ---------- Zurücksetzen ----------
+function resetProgress() {
+  if (!confirm("Lernstand (Boxen, Fälligkeiten, Statistik) zurücksetzen? Die Vokabeln bleiben erhalten.")) return;
+  state.cards.forEach(c => { c.box = 1; c.due = todayStr(); c.correct = 0; c.wrong = 0; });
+  state.log = {};
+  state.logReset = Date.now();
+  state.wrongToday = { date: "", ids: [] };
+  save();
+  renderDashboard(); renderTable();
+  toast("Lernstand zurückgesetzt.");
+}
+function resetAll() {
+  if (!confirm("Wirklich ALLE Daten löschen? Das kann nicht rückgängig gemacht werden.")) return;
+  if (!confirm("Letzte Warnung: Vorher ein Backup exportiert?")) return;
+  const now = Date.now();
+  const del = Object.assign({}, state.deleted);
+  state.cards.forEach(c => { del[c.id] = now; });   // Löschmarken, damit der Sync die Karten nicht zurückholt
+  state = { cards: [], log: {}, wrongToday: { date: "", ids: [] }, vacations: [], settings: { direction: "en-de", mixAdvanced: true, mixFromBox: 4 },
+            deleted: del, vacUpd: now, setUpd: now, logReset: now };
+  takeSnapshot();
+  save();
+  renderDashboard(); renderTable(); refreshCatLists(); renderVacations();
+  toast("Alle Daten gelöscht.");
+}
+
+// ---------- Enter-Taste im Formular ----------
+["in-en", "in-de", "in-cat"].forEach(id => {
+  document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") saveCard(); });
+});
+
+// =========================================================
+// Cloud-Sync (Supabase, nur fetch – keine Bibliothek nötig)
+// Tabelle vt_state (siehe supabase-setup.sql): eine Zeile pro Benutzer mit dem gesamten Zustand als JSON.
+// Ablauf: Remote laden -> mit lokalem Stand zusammenführen -> zurückschreiben
+// (mit Versionsnummer "rev" gegen gleichzeitige Änderungen von zwei Geräten).
+// =========================================================
+// Optional hier fest eintragen, dann entfallen die Eingabefelder (der anon key ist öffentlich vorgesehen,
+// der Schutz läuft über Row Level Security in der Datenbank):
+const SYNC_DEFAULT = { url: "https://clpkanfgdhfubbblpadf.supabase.co", key: "sb_publishable_pEFqSziNGZBBgtFt06NkjA_yqDw0aGo" };
+const SYNC_CFG_KEY = "vokabeltrainer_sync_v1";
+
+let sync = { cfg: { url: "", key: "", email: "", access: "", refresh: "", exp: 0 },
+             busy: false, timer: null, rev: null, sig: "", status: "", err: false };
+
+function loadSyncCfg() {
+  try { Object.assign(sync.cfg, JSON.parse(localStorage.getItem(SYNC_CFG_KEY) || "{}")); } catch (e) {}
+  if (SYNC_DEFAULT.url) sync.cfg.url = SYNC_DEFAULT.url;
+  if (SYNC_DEFAULT.key) sync.cfg.key = SYNC_DEFAULT.key;
+}
+function saveSyncCfg() { localStorage.setItem(SYNC_CFG_KEY, JSON.stringify(sync.cfg)); }
+function setSyncStatus(msg, err) {
+  sync.status = msg; sync.err = !!err;
+  const el = document.getElementById("sync-status");
+  if (el) { el.textContent = msg; el.className = "hint " + (err ? "sync-err" : ""); }
+}
+function renderSyncPanel() {
+  const on = !!sync.cfg.access;
+  document.getElementById("sync-cfg-box").style.display = (SYNC_DEFAULT.url && SYNC_DEFAULT.key) || on ? "none" : "";
+  document.getElementById("sync-login-box").style.display = on ? "none" : "";
+  document.getElementById("sync-on-box").style.display = on ? "" : "none";
+  document.getElementById("sync-user").textContent = sync.cfg.email || "";
+  document.getElementById("sync-url").value = sync.cfg.url || "";
+  document.getElementById("sync-key").value = sync.cfg.key || "";
+  document.getElementById("sync-email").value = sync.cfg.email || "";
+  setSyncStatus(sync.status, sync.err);
+}
+
+// ----- Zusammenführen zweier Zustände (lokal + Remote) -----
+function mergeState(R) {
+  R = R || {};
+  const L = state;
+  const now = Date.now();
+  // Löschmarken (nach 120 Tagen verwerfen)
+  const del = Object.assign({}, R.deleted || {});
+  Object.keys(L.deleted || {}).forEach(id => { del[id] = Math.max(del[id] || 0, L.deleted[id]); });
+  Object.keys(del).forEach(id => { if (now - del[id] > 120 * 86400000) delete del[id]; });
+  // Karten: je ID gewinnt die neuere Änderung (bei Gleichstand lokal)
+  const map = {};
+  (R.cards || []).forEach(c => { map[c.id] = c; });
+  L.cards.forEach(c => { const r = map[c.id]; if (!r || (c.upd || 0) >= (r.upd || 0)) map[c.id] = c; });
+  let cards = Object.values(map).filter(c => !(del[c.id] > (c.upd || 0)));
+  // Doppelte (gleiches EN+DE, z. B. auf zwei Geräten gleichzeitig importiert): neuere behalten
+  const seen = {};
+  cards.forEach(c => {
+    const k = c.en.trim().toLowerCase() + "|" + c.de.trim().toLowerCase();
+    if (!seen[k] || (c.upd || 0) > (seen[k].upd || 0)) seen[k] = c;
+  });
+  cards = cards.filter(c => seen[c.en.trim().toLowerCase() + "|" + c.de.trim().toLowerCase()] === c);
+  // Statistik-Log: nach Reset-Zeitpunkt, sonst je Tag der höhere Wert
+  const lr = L.logReset || 0, rr = R.logReset || 0;
+  let log;
+  if (rr > lr) log = R.log || {};
+  else if (lr > rr) log = L.log || {};
+  else {
+    log = {};
+    const days = new Set([...Object.keys(L.log || {}), ...Object.keys(R.log || {})]);
+    days.forEach(d => {
+      const a = (L.log || {})[d], b = (R.log || {})[d];
+      log[d] = !a ? b : !b ? a : (b.r > a.r ? b : a);
+    });
+  }
+  // "Heute nicht gewusst": jüngeres Datum gewinnt, bei gleichem Datum Vereinigung
+  const lw = L.wrongToday || { date: "", ids: [] }, rw = R.wrongToday || { date: "", ids: [] };
+  let wrongToday;
+  if (lw.date === rw.date) wrongToday = { date: lw.date, ids: [...new Set([...(lw.ids || []), ...(rw.ids || [])])] };
+  else wrongToday = lw.date > rw.date ? lw : rw;
+  wrongToday.ids = (wrongToday.ids || []).filter(id => map[id] && cards.includes(map[id]));
+  // Urlaube & Einstellungen: neuere Version gewinnt
+  const useRVac = (R.vacUpd || 0) > (L.vacUpd || 0);
+  const useRSet = (R.setUpd || 0) > (L.setUpd || 0);
+  state = {
+    cards, log, wrongToday,
+    vacations: useRVac ? (R.vacations || []) : L.vacations,
+    settings: Object.assign({ direction: "en-de", mixAdvanced: true, mixFromBox: 4 }, useRSet ? R.settings : L.settings),
+    deleted: del,
+    vacUpd: Math.max(L.vacUpd || 0, R.vacUpd || 0),
+    setUpd: Math.max(L.setUpd || 0, R.setUpd || 0),
+    logReset: Math.max(lr, rr)
+  };
+  takeSnapshot();
+}
+
+// ----- Netzwerk -----
+async function sbFetch(path, opts) {
+  opts = opts || {};
+  const c = sync.cfg;
+  const headers = Object.assign({ apikey: c.key, "Content-Type": "application/json", Authorization: "Bearer " + c.access }, opts.headers || {});
+  return fetch(c.url.replace(/\/+$/, "") + path, { method: opts.method || "GET", headers, body: opts.body });
+}
+async function authCall(path, body) {
+  const c = sync.cfg;
+  const r = await fetch(c.url.replace(/\/+$/, "") + "/auth/v1/" + path, {
+    method: "POST", headers: { apikey: c.key, "Content-Type": "application/json" }, body: JSON.stringify(body)
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error_description || j.msg || j.message || ("HTTP " + r.status));
+  return j;
+}
+function applySession(j) {
+  sync.cfg.access = j.access_token;
+  sync.cfg.refresh = j.refresh_token;
+  sync.cfg.exp = Date.now() + (j.expires_in || 3600) * 1000;
+  saveSyncCfg();
+}
+async function ensureToken() {
+  if (!sync.cfg.access) throw new Error("Nicht angemeldet");
+  if (Date.now() < sync.cfg.exp - 60000) return;
+  const j = await authCall("token?grant_type=refresh_token", { refresh_token: sync.cfg.refresh });
+  applySession(j);
+}
+
+async function syncLogin(signup) {
+  const c = sync.cfg;
+  c.url = (SYNC_DEFAULT.url || document.getElementById("sync-url").value).trim();
+  c.key = (SYNC_DEFAULT.key || document.getElementById("sync-key").value).trim();
+  const email = document.getElementById("sync-email").value.trim();
+  const pass = document.getElementById("sync-pass").value;
+  if (!c.url || !c.key) { setSyncStatus("Bitte Project URL und anon key eintragen.", true); return; }
+  if (!email || pass.length < 6) { setSyncStatus("Bitte E-Mail und Passwort (min. 6 Zeichen) eingeben.", true); return; }
+  setSyncStatus(signup ? "Registriere…" : "Melde an…");
+  try {
+    let j;
+    if (signup) {
+      j = await authCall("signup", { email, password: pass });
+      if (!j.access_token) {
+        c.email = email; saveSyncCfg();
+        setSyncStatus("Registriert. Bitte E-Mail bestätigen (Link im Postfach) und danach anmelden.");
+        return;
+      }
+    } else {
+      j = await authCall("token?grant_type=password", { email, password: pass });
+    }
+    c.email = email;
+    applySession(j);
+    document.getElementById("sync-pass").value = "";
+    renderSyncPanel();
+    await syncNow(true);
+  } catch (e) { setSyncStatus("Anmeldung fehlgeschlagen: " + e.message, true); }
+}
+function syncLogout() {
+  Object.assign(sync.cfg, { access: "", refresh: "", exp: 0 });
+  sync.rev = null; sync.sig = "";
+  saveSyncCfg();
+  setSyncStatus("Abgemeldet. Lokale Daten bleiben erhalten.");
+  renderSyncPanel();
+}
+
+function sessionActive() {
+  return !!session && document.getElementById("learn-session").style.display !== "none";
+}
+// Verzögerter Auto-Sync (nach Änderungen, beim Öffnen/Zurückkehren, bei Verbindung)
+function syncSoon(delay) {
+  if (!sync.cfg.access) return;
+  clearTimeout(sync.timer);
+  sync.timer = setTimeout(() => {
+    if (sessionActive()) { syncSoon(8000); return; }   // nicht mitten in der Abfrage zusammenführen
+    syncNow(false);
+  }, delay == null ? 4000 : delay);
+}
+
+function afterMergeRender() {
+  refreshCatLists();
+  renderDashboard();
+  renderTable();
+  renderVacations();
+  setDirection(state.settings.direction);
+  const learnActive = document.getElementById("view-learn").classList.contains("active");
+  if (learnActive && !sessionActive()) backToLearnStart();
+}
+
+async function syncNow(manual) {
+  if (!sync.cfg.access) { if (manual) setSyncStatus("Bitte zuerst anmelden.", true); return; }
+  if (sync.busy) return;
+  if (sessionActive()) { if (manual) setSyncStatus("Erst die Lernsitzung beenden, dann synchronisieren.", true); syncSoon(8000); return; }
+  if (!navigator.onLine) { if (manual) setSyncStatus("Offline – es wird synchronisiert, sobald Verbindung besteht.", true); return; }
+  sync.busy = true;
+  setSyncStatus("Synchronisiere…");
+  try {
+    await ensureToken();
+    let done = false;
+    for (let attempt = 0; attempt < 4 && !done; attempt++) {
+      const r = await sbFetch("/rest/v1/vt_state?select=data,rev");
+      if (!r.ok) throw new Error("Laden fehlgeschlagen (HTTP " + r.status + ")" + (r.status === 404 ? " – Tabelle vt_state fehlt (SQL-Skript ausführen)" : ""));
+      const rows = await r.json();
+      const row = rows[0];
+      // Nichts Neues remote und lokal unverändert -> nichts zu tun
+      if (row && row.rev === sync.rev && JSON.stringify(state) === sync.sig) { done = true; break; }
+      if (row) mergeState(row.data);
+      trackChanges();
+      saveLocal();
+      const body = JSON.stringify({ data: state });
+      let ok = false, newRev = 1;
+      if (!row) {
+        const w = await sbFetch("/rest/v1/vt_state", { method: "POST", headers: { Prefer: "return=minimal" }, body });
+        ok = w.ok;                                  // 409 = zwischenzeitlich von anderem Gerät angelegt -> nochmal
+        if (!ok && w.status !== 409) throw new Error("Speichern fehlgeschlagen (HTTP " + w.status + ")");
+      } else {
+        newRev = row.rev + 1;
+        const w = await sbFetch("/rest/v1/vt_state?rev=eq." + row.rev, {
+          method: "PATCH", headers: { Prefer: "return=representation" },
+          body: JSON.stringify({ data: state, rev: newRev, updated_at: new Date().toISOString() })
+        });
+        if (!w.ok) throw new Error("Speichern fehlgeschlagen (HTTP " + w.status + ")");
+        ok = (await w.json()).length > 0;           // 0 Zeilen = anderes Gerät war schneller -> nochmal
+      }
+      if (ok) { sync.rev = newRev; sync.sig = JSON.stringify(state); done = true; }
+    }
+    if (!done) throw new Error("Konflikt – bitte erneut versuchen.");
+    afterMergeRender();
+    const t = new Date();
+    setSyncStatus("✓ Synchronisiert um " + String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0") + " Uhr · " + state.cards.length + " Vokabeln");
+    if (manual) toast("Synchronisiert ✓");
+  } catch (e) {
+    setSyncStatus("Sync-Fehler: " + e.message, true);
+  } finally { sync.busy = false; }
+}
+
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") syncSoon(800); });
+window.addEventListener("online", () => syncSoon(800));
+
+// ---------- Start ----------
+load();
+migrateDueDates();  // zukünftige Fälligkeiten von lernfreien Tagen herunterschieben
+loadSyncCfg();
+setDirection(state.settings.direction);
+refreshCatLists();
+renderDashboard();
+renderTable();
+renderVacations();
+renderSyncPanel();
+syncSoon(500);
+
+// Service Worker (Offline-Fähigkeit / Installation als App)
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(e => console.warn("Service Worker:", e));
+}
+</script>
+</body>
+</html>
